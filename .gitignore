@@ -22,3 +22,8 @@ erl_crash.dump
 # Ignore package tarball (built via "mix hex.build").
 covid19bg-*.tar
 
+# Ignore deployment environment.
+.envrc
+
+# Ignore tars for deployments.
+/dist/

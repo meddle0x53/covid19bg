@@ -50,7 +50,14 @@ defmodule Covid19bg.API.Root do
   """
 
   def get(conn, %{"accept" => "application/json"}) do
-    Helpers.send_success(conn, Covid19bg.Source.Arcgis.retrieve() |> Jason.encode!())
+    data = Covid19bg.Source.Arcgis.retrieve()
+    cases_by_location = Map.get(data, :casesByLocation)
+
+    cases_by_location_json =
+      cases_by_location
+      |> Enum.map(&Map.from_struct/1)
+
+    Helpers.send_success(conn, %{data | casesByLocation: cases_by_location_json} |> Jason.encode!())
   end
 
   def get(conn, %{"accept" => accept}) do
@@ -70,9 +77,15 @@ defmodule Covid19bg.API.Root do
         send_plain_text(conn)
 
       "false" ->
+        index_file =
+          :code.priv_dir(:covid19bg)
+          |> to_string()
+          |> Path.join("static")
+          |> Path.join("index.html")
+          |> IO.inspect()
         conn
         |> Plug.Conn.put_resp_content_type("text/html")
-        |> Plug.Conn.send_file(200, "priv/static/index.html")
+        |> Plug.Conn.send_file(200, index_file)
     end
   end
 

@@ -1,4 +1,6 @@
 defmodule Covid19bg.Source.Arcgis do
+  alias Covid19bg.Source.LocationData
+
   @by_places_uri URI.parse(
                    "https://services2.arcgis.com" <>
                      "/ZIcxOCxrlGNlo0Hc/arcgis/rest/services/COVID19_stlm_table/FeatureServer/0/query" <>
@@ -103,7 +105,11 @@ defmodule Covid19bg.Source.Arcgis do
   defp parse_response([], _request_ref, response_data), do: {:ok, response_data}
 
   defp transform_response(%{status: 200, response_body: %{"features" => features}}) do
-    {:ok, Enum.map(features, &transformer/1)}
+    response =
+      features
+      |> Enum.map(&transformer/1)
+      |> LocationData.sort_and_rank()
+    {:ok, response ++ [LocationData.add_summary(response, location())]}
   end
 
   defp transform_response(response) do
@@ -120,7 +126,7 @@ defmodule Covid19bg.Source.Arcgis do
            "Умрели" => dead
          }
        }) do
-    %{
+    %LocationData{
       active: active,
       recovered: recovered,
       area: area,

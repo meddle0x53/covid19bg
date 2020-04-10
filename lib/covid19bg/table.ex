@@ -22,18 +22,17 @@ defmodule Covid19bg.Table do
   @default_padding 2
 
   @table_settings %{
-    border_color: :white
+    border_color: :white, summary: true
   }
 
   def default_table_settings, do: @table_settings
 
-  def iodata(rows, column_settings, table_settings \\ @table_settings) do
+  def iodata(row_data, column_settings, table_settings \\ @table_settings) do
     header_data =
       column_settings
       |> Enum.map(fn %{title: title, key: key} -> {key, title} end)
       |> Enum.into(%{})
 
-    row_data = sort_and_index_rows(rows)
     column_settings = compute_column_widths(column_settings, [header_data | row_data])
 
     [
@@ -41,7 +40,6 @@ defmodule Covid19bg.Table do
       table_header(column_settings, table_settings),
       data_row(header_data, column_settings, table_settings, true),
       Enum.map(row_data, &data_row(&1, column_settings, table_settings)),
-      footer_row(row_data, column_settings, table_settings),
       table_footer(column_settings, table_settings),
       new_line()
     ]
@@ -148,49 +146,6 @@ defmodule Covid19bg.Table do
       |> Enum.join()
     end)
     |> row(column_settings, table_settings, header)
-  end
-
-  defp footer_row(data, column_settings, table_settings) do
-    column_settings
-    |> Enum.reduce(%{}, fn column_data, footer_data ->
-      case List.first(data) do
-        data_row when is_map(data_row) ->
-          case Map.get(data_row, column_data.key) do
-            number when is_number(number) ->
-              value =
-                data
-                |> Enum.map(&Map.get(&1, column_data.key, 0))
-                |> Enum.sum()
-
-              if Map.get(column_data, :summary, true) do
-                Map.put(footer_data, column_data.key, value)
-              else
-                footer_data
-              end
-
-            _ ->
-              footer_data
-          end
-
-        _ ->
-          footer_data
-      end
-    end)
-    |> data_row(column_settings, table_settings)
-  end
-
-  defp sort_and_index_rows(data) do
-    data
-    |> Enum.sort(fn
-      %{total: total1}, %{total: total2} when total1 > total2 -> true
-      %{total: total1}, %{total: total2} when total1 < total2 -> false
-      %{active: active1}, %{active: active2} when active1 > active2 -> true
-      _, _ -> false
-    end)
-    |> Enum.with_index()
-    |> Enum.map(fn {data_chunk, index} ->
-      Map.put(data_chunk, :rank, index + 1)
-    end)
   end
 
   defp compute_column_widths(column_settings, data) do
