@@ -37,6 +37,8 @@ defmodule Covid19bg.Source.Arcgis do
   def link, do: "https://www.arcgis.com"
   def description, do: "Данните са от НСИ"
 
+  def universal_place_name(name), do: name
+
   defp transform_response(%{status_code: 200, body: body}) do
     %{"features" => features} = Jason.decode!(body)
 

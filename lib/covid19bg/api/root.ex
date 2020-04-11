@@ -50,7 +50,7 @@ defmodule Covid19bg.API.Root do
   """
 
   def get(conn, %{"accept" => "application/json"}) do
-    data = Covid19bg.Source.Arcgis.retrieve()
+    data = get_source(conn).retrieve()
     cases_by_location = Map.get(data, :casesByLocation)
 
     cases_by_location_json =
@@ -70,7 +70,7 @@ defmodule Covid19bg.API.Root do
         conn,
         [
           @html_header,
-          Text.format(Covid19bg.Source.Arcgis, false),
+          Text.format(get_source(conn), false),
           @html_footer
         ],
         "text/html"
@@ -98,17 +98,18 @@ defmodule Covid19bg.API.Root do
   end
 
   defp send_plain_text(conn) do
-    source =
-      case Map.get(conn.params, "source", "arcgis") do
-        "arcgis" -> Covid19bg.Source.Arcgis
-        "local" -> Covid19bg.Source.LocalBg
-        "snify" -> Covid19bg.Source.SnifyCovidOpendataBulgaria
-      end
-
     Helpers.send_success(
       conn,
-      Text.format(source),
+      Text.format(get_source(conn)),
       "text/plain"
     )
+  end
+
+  defp get_source(conn) do
+    case Map.get(conn.params, "source", "arcgis") do
+      "arcgis" -> Covid19bg.Source.Arcgis
+      "local" -> Covid19bg.Source.LocalBg
+      "snify" -> Covid19bg.Source.SnifyCovidOpendataBulgaria
+    end
   end
 end
