@@ -22,7 +22,8 @@ defmodule Covid19bg.Table do
   @default_padding 2
 
   @table_settings %{
-    border_color: :white, summary: true
+    border_color: :white,
+    summary: true
   }
 
   def default_table_settings, do: @table_settings

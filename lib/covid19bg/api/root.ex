@@ -57,7 +57,10 @@ defmodule Covid19bg.API.Root do
       cases_by_location
       |> Enum.map(&Map.from_struct/1)
 
-    Helpers.send_success(conn, %{data | casesByLocation: cases_by_location_json} |> Jason.encode!())
+    Helpers.send_success(
+      conn,
+      %{data | casesByLocation: cases_by_location_json} |> Jason.encode!()
+    )
   end
 
   def get(conn, %{"accept" => accept}) do
@@ -83,6 +86,7 @@ defmodule Covid19bg.API.Root do
           |> Path.join("static")
           |> Path.join("index.html")
           |> IO.inspect()
+
         conn
         |> Plug.Conn.put_resp_content_type("text/html")
         |> Plug.Conn.send_file(200, index_file)
@@ -94,9 +98,16 @@ defmodule Covid19bg.API.Root do
   end
 
   defp send_plain_text(conn) do
+    source =
+      case Map.get(conn.params, "source", "arcgis") do
+        "arcgis" -> Covid19bg.Source.Arcgis
+        "local" -> Covid19bg.Source.LocalBg
+        "snify" -> Covid19bg.Source.SnifyCovidOpendataBulgaria
+      end
+
     Helpers.send_success(
       conn,
-      Text.format(Covid19bg.Source.Arcgis),
+      Text.format(source),
       "text/plain"
     )
   end

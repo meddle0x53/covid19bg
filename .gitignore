@@ -27,3 +27,5 @@ covid19bg-*.tar
 
 # Ignore tars for deployments.
 /dist/
+
+/rel/env*

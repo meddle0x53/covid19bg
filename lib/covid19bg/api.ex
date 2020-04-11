@@ -3,8 +3,7 @@ defmodule Covid19bg.API do
 
   alias Covid19bg.API.{Helpers, Root}
 
-
-  plug Plug.Static, at: "/", from: :covid19bg
+  plug(Plug.Static, at: "/", from: :covid19bg)
 
   plug(Plug.Logger)
   plug(Plug.Parsers, parsers: [:urlencoded, :multipart, :json, :pass], json_decoder: Jason)
