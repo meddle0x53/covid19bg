@@ -18,7 +18,40 @@ defmodule Covid19bg.Source.LocalBg do
           {:ok, result, _} ->
             response = LocationData.sort_and_rank(result)
 
-            response ++ [LocationData.add_summary(response, location())]
+            summary =
+              case retrieve(:latest) do
+                %{summary: summary} ->
+                  %LocationData{
+                    LocationData.add_summary(response, location())
+                    | recovered_new: summary.recovered_new,
+                      dead_new: summary.dead_new,
+                      total_new: summary.total_new,
+                      updated: summary.updated
+                  }
+
+                {:error, _} ->
+                  LocationData.add_summary(response, location())
+              end
+
+            response ++ [summary]
+
+          {:error, _} = error ->
+            error
+        end
+
+      _ ->
+        {:error, "Local storage is not configured"}
+    end
+  end
+
+  def retrieve(:latest) do
+    case Application.get_env(:covid19bg, :store) do
+      {store_module, args} ->
+        store = Kernel.apply(store_module, :new, args)
+
+        case store_module.get_latest_for_location(store, location()) do
+          {:ok, result, _} ->
+            %{day: DateTime.to_date(result.updated), summary: result, locations: []}
 
           {:error, _} = error ->
             error

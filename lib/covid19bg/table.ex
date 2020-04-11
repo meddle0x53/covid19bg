@@ -133,7 +133,7 @@ defmodule Covid19bg.Table do
         " ",
         data_chunk
         |> Map.get(column_data.key, "")
-        |> to_string()
+        |> Map.get(column_data, :formatter).(data_chunk)
         |> (fn str ->
               Kernel.apply(
                 String,

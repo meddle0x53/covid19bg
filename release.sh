@@ -32,5 +32,5 @@ ssh -o StrictHostKeyChecking=no -t $DEPLOYMENT_SSH "tar -xvf covid19bg_${VERSION
 
 ssh -o StrictHostKeyChecking=no -t $DEPLOYMENT_SSH "./covid19bg/releases/current/covid19bg/bin/covid19bg stop"
 ssh -o StrictHostKeyChecking=no -t $DEPLOYMENT_SSH "rm ./covid19bg/releases/current"
-ssh -o StrictHostKeyChecking=no -t $DEPLOYMENT_SSH "ln -s ${HOME}/covid19bg/releases/${VERSION}/ ${HOME}/covid19bg/releases/current"
+ssh -o StrictHostKeyChecking=no -t $DEPLOYMENT_SSH "ln -s ${DEPLOYMENT_HOME}/covid19bg/releases/${VERSION} ${DEPLOYMENT_HOME}/covid19bg/releases/current"
 ssh -o StrictHostKeyChecking=no -t $DEPLOYMENT_SSH "./covid19bg/releases/current/covid19bg/bin/covid19bg daemon"

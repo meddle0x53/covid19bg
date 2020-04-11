@@ -108,14 +108,33 @@ defmodule Covid19bg.Store.Postgres do
   end
 
   def get_latest(
-        %__MODULE__{connection: conn, schema: schema} = store,
+        %__MODULE__{schema: schema} = store,
         parent_location
       ) do
     query =
       "SELECT * FROM #{schema}.latest_stats WHERE location IN (SELECT name FROM #{schema}.locations WHERE parent_location = $1)"
 
     args = [parent_location]
+    get_location_data(store, parent_location, query, args)
+  end
 
+  def get_latest_for_location(%__MODULE__{schema: schema} = store, location) do
+    query = "SELECT * FROM #{schema}.latest_stats WHERE location = $1"
+
+    args = [location]
+
+    store
+    |> get_location_data(location, query, args)
+    |> case do
+      {:ok, [result], store} ->
+        {:ok, result, store}
+
+      {:error, _} = error ->
+        error
+    end
+  end
+
+  defp get_location_data(%__MODULE__{connection: conn} = store, parent_location, query, args) do
     case Postgrex.query(conn, query, args) do
       {:ok, %Postgrex.Result{rows: rows}} ->
         stats =

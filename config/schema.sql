@@ -80,7 +80,7 @@ BEGIN
     total = a_total, total_new = a_total_new, dead = a_dead, dead_new = a_dead_new,
     recovered = a_recovered, recovered_new = a_recovered_new, active = a_active,
     in_hospital = a_in_hospital, critical = a_critical, updated = a_updated
-  WHERE updated < a_updated AND location = a_location;
+  WHERE location = a_location;
   IF NOT FOUND THEN
     PERFORM public_insert_latest_stats(
       a_location, a_location_code, a_location_parent,

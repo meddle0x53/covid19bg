@@ -7,6 +7,9 @@ defmodule Covid19bg.Table.Column do
     header_color: :red,
     color: nil,
     width: 0,
-    align: :right
+    align: :right,
+    formatter: &__MODULE__.formatter/2
   ]
+
+  def formatter(v, _), do: to_string(v)
 end

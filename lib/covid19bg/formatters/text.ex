@@ -6,10 +6,29 @@ defmodule Covid19bg.Formatters.Text do
     %Column{title: "Rank", key: :rank, summary: false, header_color: :red},
     %Column{title: "<location>", key: :place, align: :left, header_color: :red, color: :cyan},
     %Column{title: "Total", key: :total, header_color: :red, color: :yellow},
-    %Column{title: "New", key: :new, header_color: :red, color: :cyan},
+    %Column{
+      title: "New",
+      key: :total_new,
+      header_color: :red,
+      color: :cyan,
+      formatter: &__MODULE__.formatter/2
+    },
     %Column{title: "Total Deaths", key: :dead, header_color: :red, color: :red},
-    %Column{title: "New Deaths", key: :new_dead, header_color: :red, color: :red},
+    %Column{
+      title: "New Deaths",
+      key: :dead_new,
+      header_color: :red,
+      color: :red,
+      formatter: &__MODULE__.formatter/2
+    },
     %Column{title: "Recovered", key: :recovered, header_color: :red, color: :green},
+    %Column{
+      title: "Newly Recovered",
+      key: :recovered_new,
+      header_color: :red,
+      color: :green,
+      formatter: &__MODULE__.formatter/2
+    },
     %Column{title: "Active", key: :active, header_color: :red, color: :blue}
   ]
 
@@ -54,6 +73,9 @@ defmodule Covid19bg.Formatters.Text do
       "\n"
     ]
   end
+
+  def formatter(0, %{summary: false}), do: ""
+  def formatter(v, _), do: to_string(v)
 
   defp colorize(color, true), do: Kernel.apply(IO.ANSI, color, [])
   defp colorize(_, false), do: <<>>
