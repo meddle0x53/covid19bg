@@ -23,9 +23,14 @@ CREATE TABLE IF NOT EXISTS public.latest_stats (
 CREATE TABLE IF NOT EXISTS public.historical_stats (
   location            varchar(128)       references public.locations(name),
   total               integer            DEFAULT -1 NOT NULL,
-  active              integer            DEFAULT -1 NOT NULL,
+  total_new           integer            DEFAULT -1 NOT NULL,
   dead                integer            DEFAULT -1 NOT NULL,
+  dead_new            integer            DEFAULT -1 NOT NULL,
   recovered           integer            DEFAULT -1 NOT NULL,
+  recovered_new       integer            DEFAULT -1 NOT NULL,
+  active              integer            DEFAULT -1 NOT NULL,
+  in_hospital         integer            DEFAULT -1 NOT NULL,
+  critical            integer            DEFAULT -1 NOT NULL,
   day                 date               NOT NULL
 );
 
@@ -90,3 +95,28 @@ BEGIN
   END IF;
 END
 $body$ language plpgsql;
+
+CREATE OR REPLACE FUNCTION public_insert_historical_stats (
+  a_location varchar, a_location_code varchar, a_location_parent varchar,
+  a_total integer, a_total_new integer, a_dead integer, a_dead_new integer,
+  a_recovered integer, a_recovered_new integer, a_active integer,
+  a_in_hospital integer, a_critical integer, a_day date
+)
+RETURNS void
+AS
+$body$
+  SELECT public_create_location(a_location, a_location_code, a_location_parent);
+  INSERT INTO public.historical_stats (
+    location, total, total_new, dead, dead_new, recovered, recovered_new,
+    active, in_hospital, critical, day
+  )
+  VALUES(
+    a_location, a_total, a_total_new, a_dead, a_dead_new, a_recovered, a_recovered_new,
+    a_active, a_in_hospital, a_critical, a_day
+  )
+  ON CONFLICT (location, day)
+  DO UPDATE SET
+    total = a_total, total_new = a_total_new, dead = a_dead, dead_new = a_dead_new,
+    recovered = a_recovered, recovered_new = a_recovered_new, active = a_active,
+    in_hospital = a_in_hospital, critical = a_critical;
+$body$ language SQL;

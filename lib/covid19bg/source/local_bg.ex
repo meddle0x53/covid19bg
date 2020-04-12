@@ -3,15 +3,17 @@ defmodule Covid19bg.Source.LocalBg do
 
   require Logger
 
-  def retrieve(type \\ :all)
+  def retrieve(type \\ :all, place \\ "Bulgaria")
 
-  def retrieve(:all) do
+  def retrieve(:all, place) do
     %{
-      casesByLocation: retrieve(:by_places)
+      casesByLocation: retrieve(:by_places),
+      latest: retrieve(:latest),
+      historical: retrieve(:historical, place)
     }
   end
 
-  def retrieve(:by_places) do
+  def retrieve(:by_places, _) do
     retriever = fn store, store_module ->
       case store_module.get_latest(store, location()) do
         {:ok, result, _} ->
@@ -42,11 +44,27 @@ defmodule Covid19bg.Source.LocalBg do
     with_store(retriever)
   end
 
-  def retrieve(:latest) do
+  def retrieve(:latest, _) do
     retriever = fn store, store_module ->
       case store_module.get_latest_for_location(store, location()) do
         {:ok, result, _} ->
           %{day: DateTime.to_date(result.updated), summary: result, locations: []}
+
+        {:error, _} = error ->
+          error
+      end
+    end
+
+    with_store(retriever)
+  end
+
+  def retrieve(:historical, place) do
+    retriever = fn store, store_module ->
+      case store_module.get_historical_for_location(store, place) do
+        {:ok, result, _} ->
+          result
+          |> LocationData.sort_and_rank([:updated])
+          |> Enum.reverse()
 
         {:error, _} = error ->
           error
@@ -82,6 +100,12 @@ defmodule Covid19bg.Source.LocalBg do
   end
 
   defp update_latest_from_results([{primary_source, primary} | rest]) do
+    day =
+      DateTime.utc_now()
+      |> DateTime.shift_zone("Europe/Sofia")
+      |> Kernel.elem(1)
+      |> DateTime.to_date()
+
     locations =
       primary
       |> Enum.map(fn location ->
@@ -106,6 +130,7 @@ defmodule Covid19bg.Source.LocalBg do
 
     updater = fn store, store_module ->
       Enum.map(locations, fn location ->
+        store_module.insert_historical(store, [%LocationData{location | updated: day}])
         store_module.update_latest(store, location)
       end)
     end

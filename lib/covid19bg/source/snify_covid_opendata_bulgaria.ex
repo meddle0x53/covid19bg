@@ -37,6 +37,7 @@ defmodule Covid19bg.Source.SnifyCovidOpendataBulgaria do
     "Lovech" => "Ловеч",
     "Gabrovo" => "Габрово"
   }
+
   # @cities_reverse @cities |> Enum.map(fn {k, v} -> {v, k} end) |> Enum.into(%{})
 
   def retrieve(type \\ :all, place \\ "Bulgaria")

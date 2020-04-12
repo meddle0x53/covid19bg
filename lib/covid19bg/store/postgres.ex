@@ -141,6 +141,22 @@ defmodule Covid19bg.Store.Postgres do
     end
   end
 
+  def get_historical_for_location(%__MODULE__{schema: schema} = store, location) do
+    query = "SELECT * FROM #{schema}.historical_stats WHERE location = $1"
+
+    args = [location]
+
+    store
+    |> get_location_data(location, query, args)
+    |> case do
+      {:ok, result, store} ->
+        {:ok, result, store}
+
+      {:error, _} = error ->
+        error
+    end
+  end
+
   defp get_location_data(%__MODULE__{connection: conn} = store, parent_location, query, args) do
     case Postgrex.query(conn, query, args) do
       {:ok, %Postgrex.Result{rows: rows}} ->
@@ -159,6 +175,12 @@ defmodule Covid19bg.Store.Postgres do
                            critical,
                            updated
                          ] ->
+            updated_val =
+              case updated do
+                %Date{} = date -> Date.to_iso8601(date)
+                timestamp -> DateTime.from_naive!(timestamp, "Etc/UTC")
+              end
+
             %LocationData{
               area: parent_location,
               place: location,
@@ -171,7 +193,7 @@ defmodule Covid19bg.Store.Postgres do
               active: active,
               in_hospital: in_hospital,
               critical: critical,
-              updated: DateTime.from_naive!(updated, "Etc/UTC")
+              updated: updated_val
             }
           end)
 
@@ -179,6 +201,48 @@ defmodule Covid19bg.Store.Postgres do
 
       {:error, _} = error ->
         error
+    end
+  end
+
+  def insert_historical(store, []), do: {:ok, store}
+
+  def insert_historical(
+        %__MODULE__{connection: conn, schema: schema} = store,
+        [%LocationData{} | _] = locations
+      ) do
+    query =
+      "SELECT #{schema}_insert_historical_stats($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)"
+
+    f = fn connection ->
+      locations
+      |> Enum.map(fn location ->
+        args = [
+          location.place,
+          location.place_code,
+          location.area,
+          location.total,
+          location.total_new,
+          location.dead,
+          location.dead_new,
+          location.recovered,
+          location.recovered_new,
+          location.active,
+          location.in_hospital,
+          location.critical,
+          if(String.valid?(location.updated),
+            do: Date.from_iso8601!(location.updated),
+            else: location.updated
+          )
+        ]
+
+        Postgrex.query(connection, query, args)
+      end)
+      |> List.last()
+    end
+
+    case Postgrex.transaction(conn, f, timeout: @transaction_timeout) do
+      {:ok, _} -> {:ok, store}
+      {:error, _} = error -> error
     end
   end
 end

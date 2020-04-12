@@ -9,7 +9,7 @@ defmodule Covid19bg do
         updater = store_module.updater()
 
         init_args
-        |> Keyword.get(:updaters, [])
+        |> Keyword.get(:updaters, [[]])
         |> Enum.map(fn updater_args ->
           Supervisor.start_child(Covid19bg.Supervisor, {updater, updater_args})
         end)

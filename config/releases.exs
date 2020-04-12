@@ -9,5 +9,8 @@ config :covid19bg,
        password: System.fetch_env!("COVID_19_DB_PASSWORD"),
        username: "covid19bg",
        database: "covid19bg",
-       pool_size: 5
+       pool_size: 5,
+       updaters: [
+         [update_interval: 60000, name: :covid19bg_bg_updater]
+       ]
      ]}
