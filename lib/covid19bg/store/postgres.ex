@@ -28,7 +28,7 @@ defmodule Covid19bg.Store.Postgres do
     args =
       pool_settings
       |> Keyword.merge(settings)
-      |> Keyword.delete(:updater)
+      |> Keyword.delete(:updaters)
 
     spec = %{
       id: :postgres_connections,

@@ -70,7 +70,7 @@ defmodule Covid19bg.API.Root do
         conn,
         [
           @html_header,
-          Text.format(get_source(conn), false),
+          Text.format(get_source(conn), get_data_type(conn), false),
           @html_footer
         ],
         "text/html"
@@ -85,7 +85,6 @@ defmodule Covid19bg.API.Root do
           |> to_string()
           |> Path.join("static")
           |> Path.join("index.html")
-          |> IO.inspect()
 
         conn
         |> Plug.Conn.put_resp_content_type("text/html")
@@ -100,7 +99,7 @@ defmodule Covid19bg.API.Root do
   defp send_plain_text(conn) do
     Helpers.send_success(
       conn,
-      Text.format(get_source(conn)),
+      Text.format(get_source(conn), get_data_type(conn)),
       "text/plain"
     )
   end
@@ -111,6 +110,17 @@ defmodule Covid19bg.API.Root do
       "nsi" -> Covid19bg.Source.Arcgis
       "local" -> Covid19bg.Source.LocalBg
       "snify" -> Covid19bg.Source.SnifyCovidOpendataBulgaria
+      _ -> Covid19bg.Source.LocalBg
+    end
+  end
+
+  defp get_data_type(conn) do
+    case Map.get(conn.params, "data", "by_places") do
+      "historical" -> :historical
+      "by_places" -> :by_places
+      "latest" -> :latest
+      "all" -> :all
+      _ -> :by_places
     end
   end
 end

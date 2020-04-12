@@ -4,7 +4,7 @@ defmodule Covid19bg.Formatters.Text do
 
   require Logger
 
-  @column_settings [
+  @by_place_column_settings [
     %Column{title: "Rank", key: :rank, summary: false, header_color: :red},
     %Column{title: "<location>", key: :place, align: :left, header_color: :red, color: :cyan},
     %Column{title: "Total", key: :total, header_color: :red, color: :yellow},
@@ -34,21 +34,45 @@ defmodule Covid19bg.Formatters.Text do
     %Column{title: "Active", key: :active, header_color: :red, color: :blue}
   ]
 
-  def format(source, use_ansi_colors \\ true) do
-    do_format(source.retrieve(:by_places), source, use_ansi_colors)
+  @historical_column_settings [
+    %Column{title: "Date", key: :updated, header_color: :green, align: :left},
+    %Column{title: "Total cases", key: :total, header_color: :green, color: :yellow},
+    %Column{title: "New cases", key: :total_new, header_color: :green, color: :yellow},
+    %Column{title: "Total Deaths", key: :dead, header_color: :green, color: :red},
+    %Column{title: "New Deaths", key: :dead_new, header_color: :green, color: :red},
+    %Column{title: "Total Recovered", key: :recovered, header_color: :green, color: :green},
+    %Column{title: "New Recovered", key: :recovered_new, header_color: :green, color: :green},
+    %Column{title: "Hospitalized", key: :in_hospital, header_color: :green, color: :magenta},
+    %Column{title: "Critical", key: :critical, header_color: :green, color: :red},
+    %Column{title: "Active", key: :active, header_color: :green, color: :blue}
+  ]
+
+  def format(source, data_type, use_ansi_colors \\ true) do
+    case data_type do
+      :by_places ->
+        do_format(source.retrieve(data_type), source, @by_place_column_settings, use_ansi_colors)
+
+      :historical ->
+        do_format(
+          source.retrieve(data_type),
+          source,
+          @historical_column_settings,
+          use_ansi_colors
+        )
+    end
   end
 
-  defp do_format({:error, :no_recent_data}, source, use_ansi_colors) do
+  defp do_format({:error, :no_recent_data}, source, column_settings, use_ansi_colors) do
     Logger.warn("No recent data available to be displayed from #{source.description}!")
 
-    do_format([], source, use_ansi_colors)
+    do_format([], source, column_settings, use_ansi_colors)
   end
 
-  defp do_format(data, source, use_ansi_colors) do
+  defp do_format(data, source, columns, use_ansi_colors) do
     location = source.location()
 
     column_settings =
-      Enum.map(@column_settings, fn column_data ->
+      Enum.map(columns, fn column_data ->
         %{column_data | title: String.replace(column_data.title, "<location>", location)}
       end)
 
@@ -69,22 +93,31 @@ defmodule Covid19bg.Formatters.Text do
         %{Table.default_table_settings() | border_color: nil}
       end
 
-    updated =
-      case List.last(data) do
-        nil -> DateTime.utc_now()
-        %{updated: updated} -> updated
+    updated_info =
+      if columns == @by_place_column_settings do
+        updated =
+          case List.last(data) do
+            nil -> DateTime.utc_now()
+            %{updated: updated} -> updated
+          end
+          |> DateTime.shift_zone("Europe/Sofia")
+          |> Kernel.elem(1)
+          |> DateTime.to_iso8601()
+
+        [
+          "\n",
+          "Updated: ",
+          colorize(:magenta, use_ansi_colors),
+          updated,
+          decolorize(use_ansi_colors)
+        ]
+      else
+        []
       end
-      |> DateTime.shift_zone("Europe/Sofia")
-      |> Kernel.elem(1)
-      |> DateTime.to_iso8601()
 
     [
       Table.iodata(data, column_settings, table_settings),
-      "\n",
-      "Updated: ",
-      colorize(:magenta, use_ansi_colors),
-      updated,
-      decolorize(use_ansi_colors),
+      updated_info,
       "\n",
       "Source: ",
       colorize(:blue, use_ansi_colors),

@@ -37,22 +37,28 @@ defmodule Covid19bg.Source.SnifyCovidOpendataBulgaria do
     "Lovech" => "Ловеч",
     "Gabrovo" => "Габрово"
   }
+  # @cities_reverse @cities |> Enum.map(fn {k, v} -> {v, k} end) |> Enum.into(%{})
 
-  def retrieve(type \\ :all)
+  def retrieve(type \\ :all, place \\ "Bulgaria")
 
-  def retrieve(:all) do
+  def retrieve(:all, place) do
     %{
       casesByLocation: retrieve(:by_places),
-      latest: retrieve(:latest)
+      latest: retrieve(:latest),
+      historical: retrieve(:historical, place)
     }
   end
 
-  def retrieve(:by_places) do
-    Helpers.http_request(@historical, &transform_historical_response/1)
+  def retrieve(:by_places, _) do
+    Helpers.http_request(@historical, &transform_historical_response_by_places/1)
   end
 
-  def retrieve(:latest) do
+  def retrieve(:latest, _) do
     Helpers.http_request(@latest, &transform_latest_response/1)
+  end
+
+  def retrieve(:historical, place) do
+    Helpers.http_request(@historical, &transform_historical_response_for_place(&1, place))
   end
 
   def location, do: "Bulgaria"
@@ -64,7 +70,7 @@ defmodule Covid19bg.Source.SnifyCovidOpendataBulgaria do
     Map.get(@cities, name, name)
   end
 
-  defp transform_historical_response(%{status_code: 200, body: body}) do
+  defp transform_historical_response_by_places(%{status_code: 200, body: body}) do
     case Jason.decode(body) do
       {:ok, data} ->
         today =
@@ -140,7 +146,21 @@ defmodule Covid19bg.Source.SnifyCovidOpendataBulgaria do
     end
   end
 
-  defp transform_historical_response(response) do
+  defp transform_historical_response_by_places(response) do
+    {:error, "Bad server response", response}
+  end
+
+  defp transform_historical_response_for_place(%{status_code: 200, body: body}, place) do
+    case Jason.decode(body) do
+      {:ok, data} ->
+        {:ok, extract_historical_data(data, place)}
+
+      {:error, _} = error ->
+        error
+    end
+  end
+
+  defp transform_historical_response_for_place(response, _) do
     {:error, "Bad server response", response}
   end
 
@@ -204,5 +224,44 @@ defmodule Covid19bg.Source.SnifyCovidOpendataBulgaria do
 
   defp transform_latest_response(response) do
     {:error, "Bad server response", response}
+  end
+
+  def extract_historical_data(historical_data, "Bulgaria") do
+    historical_data
+    |> Enum.map(fn data ->
+      %{
+        "active_cases_hospitalized" => in_hospital,
+        "active_cases_icu" => critical,
+        "active_cases_total" => active,
+        "confirmed_cases_new" => total_new,
+        "confirmed_cases_total" => total,
+        "date" => date,
+        "deaths_new" => dead_new,
+        "deaths_total" => dead,
+        "recoveries_new" => recovered_new,
+        "recoveries_total" => recovered
+      } = data
+
+      day = date |> String.split("-") |> Enum.reverse() |> Enum.join("-")
+
+      %LocationData{
+        active: active,
+        in_hospital: in_hospital,
+        critical: critical,
+        recovered: recovered,
+        recovered_new: recovered_new,
+        area: "World",
+        place: location(),
+        place_code: "bg",
+        total: total,
+        total_new: total_new,
+        dead: dead,
+        dead_new: dead_new,
+        updated: day,
+        summary: true
+      }
+    end)
+    |> LocationData.sort_and_rank([:updated])
+    |> Enum.reverse()
   end
 end

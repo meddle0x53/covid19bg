@@ -1,6 +1,8 @@
 defmodule Covid19bg.Source.LocalBg do
   alias Covid19bg.Source.{Arcgis, LocationData, SnifyCovidOpendataBulgaria}
 
+  require Logger
+
   def retrieve(type \\ :all)
 
   def retrieve(:all) do
@@ -64,17 +66,20 @@ defmodule Covid19bg.Source.LocalBg do
     |> Enum.map(fn source -> {source, source.retrieve(:by_places)} end)
     |> Enum.filter(fn {_, results} -> is_list(results) end)
     |> case do
-      results when is_list(results) ->
+      [_ | _] = results ->
         update_latest_from_results(results)
 
       [] ->
-        :noop
+        []
     end
   end
 
   def universal_place_name(name), do: name
 
-  defp update_latest_from_results([]), do: :noop
+  defp update_latest_from_results([]) do
+    Logger.warn("Latest update data was empty...")
+    []
+  end
 
   defp update_latest_from_results([{primary_source, primary} | rest]) do
     locations =

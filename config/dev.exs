@@ -9,5 +9,7 @@ config :covid19bg,
        password: "covid19bg",
        username: "covid19bg",
        database: "covid19bg",
-       updater: [update_interval: 60000]
+       updaters: [
+         [update_interval: 60000, name: :covid19bg_bg_updater]
+       ]
      ]}
