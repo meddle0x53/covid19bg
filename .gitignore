@@ -29,3 +29,4 @@ covid19bg-*.tar
 /dist/
 
 /rel/env*
+/log/

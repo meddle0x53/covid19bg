@@ -1,7 +1,7 @@
 defmodule Covid19bg.MixProject do
   use Mix.Project
 
-  @version "0.3.3"
+  @version "0.3.5"
 
   def project do
     [
@@ -28,7 +28,9 @@ defmodule Covid19bg.MixProject do
       {:mojito, "~> 0.6.1"},
       {:number, "~> 1.0.1"},
       {:postgrex, "~> 0.15.3"},
-      {:countriex, "~> 0.4"}
+      {:tzdata, "~> 1.0.1"},
+      {:countriex, "~> 0.4"},
+      {:logger_file_backend, "~> 0.0.11"}
     ]
   end
 end

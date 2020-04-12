@@ -5,11 +5,9 @@ config :covid19bg,
   store:
     {Covid19bg.Store.Postgres,
      [
-       [
-         hostname: "localhost",
-         password: System.fetch_env!("COVID_19_DB_PASSWORD"),
-         username: "covid19bg",
-         database: "covid19bg",
-         pool_size: 5
-       ]
+       hostname: "localhost",
+       password: System.fetch_env!("COVID_19_DB_PASSWORD"),
+       username: "covid19bg",
+       database: "covid19bg",
+       pool_size: 5
      ]}

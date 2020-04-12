@@ -4,8 +4,15 @@ defmodule Covid19bg do
   def initialize(_args) do
     case Application.get_env(:covid19bg, :store) do
       {store_module, init_args} when is_atom(store_module) and is_list(init_args) ->
-        store = %{__struct__: ^store_module} = Kernel.apply(store_module, :new, init_args)
+        store = %{__struct__: ^store_module} = Kernel.apply(store_module, :new, [init_args])
         {:ok, _store} = store_module.init(store)
+        updater = store_module.updater()
+
+        Supervisor.start_child(
+          Covid19bg.Supervisor,
+          {updater, Keyword.get(init_args, :updater, [])}
+        )
+
         :ok
 
       _ ->

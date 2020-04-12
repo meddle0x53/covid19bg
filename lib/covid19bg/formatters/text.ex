@@ -2,6 +2,8 @@ defmodule Covid19bg.Formatters.Text do
   alias Covid19bg.Table
   alias Covid19bg.Table.Column
 
+  require Logger
+
   @column_settings [
     %Column{title: "Rank", key: :rank, summary: false, header_color: :red},
     %Column{title: "<location>", key: :place, align: :left, header_color: :red, color: :cyan},
@@ -33,7 +35,16 @@ defmodule Covid19bg.Formatters.Text do
   ]
 
   def format(source, use_ansi_colors \\ true) do
-    data = source.retrieve(:by_places)
+    do_format(source.retrieve(:by_places), source, use_ansi_colors)
+  end
+
+  defp do_format({:error, :no_recent_data}, source, use_ansi_colors) do
+    Logger.warn("No recent data available to be displayed from #{source.description}!")
+
+    do_format([], source, use_ansi_colors)
+  end
+
+  defp do_format(data, source, use_ansi_colors) do
     location = source.location()
 
     column_settings =
@@ -58,8 +69,22 @@ defmodule Covid19bg.Formatters.Text do
         %{Table.default_table_settings() | border_color: nil}
       end
 
+    updated =
+      case List.last(data) do
+        nil -> DateTime.utc_now()
+        %{updated: updated} -> updated
+      end
+      |> DateTime.shift_zone("Europe/Sofia")
+      |> Kernel.elem(1)
+      |> DateTime.to_iso8601()
+
     [
       Table.iodata(data, column_settings, table_settings),
+      "\n",
+      "Updated: ",
+      colorize(:magenta, use_ansi_colors),
+      updated,
+      decolorize(use_ansi_colors),
       "\n",
       "Source: ",
       colorize(:blue, use_ansi_colors),

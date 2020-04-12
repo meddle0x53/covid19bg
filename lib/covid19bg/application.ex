@@ -5,6 +5,7 @@ defmodule Covid19bg.Application do
 
   def start(_type, args) do
     children = [
+      {Task.Supervisor, [name: :tasks_supervisor]},
       {Plug.Cowboy,
        scheme: :http, plug: Covid19bg.API, options: [port: Application.get_env(:covid19bg, :port)]}
     ]

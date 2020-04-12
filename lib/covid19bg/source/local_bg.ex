@@ -10,56 +10,48 @@ defmodule Covid19bg.Source.LocalBg do
   end
 
   def retrieve(:by_places) do
-    case Application.get_env(:covid19bg, :store) do
-      {store_module, args} ->
-        store = Kernel.apply(store_module, :new, args)
+    retriever = fn store, store_module ->
+      case store_module.get_latest(store, location()) do
+        {:ok, result, _} ->
+          response = LocationData.sort_and_rank(result)
 
-        case store_module.get_latest(store, location()) do
-          {:ok, result, _} ->
-            response = LocationData.sort_and_rank(result)
-
-            summary =
-              case retrieve(:latest) do
-                %{summary: summary} ->
-                  %LocationData{
-                    LocationData.add_summary(response, location())
-                    | recovered_new: summary.recovered_new,
-                      dead_new: summary.dead_new,
-                      total_new: summary.total_new,
-                      updated: summary.updated
-                  }
-
-                {:error, _} ->
+          summary =
+            case retrieve(:latest) do
+              %{summary: summary} ->
+                %LocationData{
                   LocationData.add_summary(response, location())
-              end
+                  | recovered_new: summary.recovered_new,
+                    dead_new: summary.dead_new,
+                    total_new: summary.total_new,
+                    updated: summary.updated
+                }
 
-            response ++ [summary]
+              {:error, _} ->
+                LocationData.add_summary(response, location())
+            end
 
-          {:error, _} = error ->
-            error
-        end
+          response ++ [summary]
 
-      _ ->
-        {:error, "Local storage is not configured"}
+        {:error, _} = error ->
+          error
+      end
     end
+
+    with_store(retriever)
   end
 
   def retrieve(:latest) do
-    case Application.get_env(:covid19bg, :store) do
-      {store_module, args} ->
-        store = Kernel.apply(store_module, :new, args)
+    retriever = fn store, store_module ->
+      case store_module.get_latest_for_location(store, location()) do
+        {:ok, result, _} ->
+          %{day: DateTime.to_date(result.updated), summary: result, locations: []}
 
-        case store_module.get_latest_for_location(store, location()) do
-          {:ok, result, _} ->
-            %{day: DateTime.to_date(result.updated), summary: result, locations: []}
-
-          {:error, _} = error ->
-            error
-        end
-
-      _ ->
-        {:error, "Local storage is not configured"}
+        {:error, _} = error ->
+          error
+      end
     end
+
+    with_store(retriever)
   end
 
   def location, do: "Bulgaria"
@@ -120,7 +112,7 @@ defmodule Covid19bg.Source.LocalBg do
     case Application.get_env(:covid19bg, :store) do
       {store_module, args} ->
         store_module
-        |> Kernel.apply(:new, args)
+        |> Kernel.apply(:new, [args])
         |> action.(store_module)
 
       _ ->

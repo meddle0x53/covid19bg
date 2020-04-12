@@ -106,8 +106,9 @@ defmodule Covid19bg.API.Root do
   end
 
   defp get_source(conn) do
-    case Map.get(conn.params, "source", "arcgis") do
+    case Map.get(conn.params, "source", "local") do
       "arcgis" -> Covid19bg.Source.Arcgis
+      "nsi" -> Covid19bg.Source.Arcgis
       "local" -> Covid19bg.Source.LocalBg
       "snify" -> Covid19bg.Source.SnifyCovidOpendataBulgaria
     end

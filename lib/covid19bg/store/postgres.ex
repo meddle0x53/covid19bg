@@ -11,7 +11,7 @@ defmodule Covid19bg.Store.Postgres do
 
   def new() do
     case Application.get_env(:covid19bg, :store) do
-      {__MODULE__, [settings]} ->
+      {__MODULE__, settings} ->
         new(settings)
 
       _ ->
@@ -25,9 +25,14 @@ defmodule Covid19bg.Store.Postgres do
       name: :postgres_connections
     ]
 
+    args =
+      pool_settings
+      |> Keyword.merge(settings)
+      |> Keyword.delete(:updater)
+
     spec = %{
       id: :postgres_connections,
-      start: {Postgrex, :start_link, [Keyword.merge(pool_settings, settings)]},
+      start: {Postgrex, :start_link, [args]},
       restart: :transient
     }
 
@@ -36,6 +41,8 @@ defmodule Covid19bg.Store.Postgres do
       {:error, {:already_started, pid}} -> %__MODULE__{connection: pid}
     end
   end
+
+  def updater, do: Covid19bg.Store.Postgres.Updater
 
   def init(%__MODULE__{connection: conn} = store) do
     @schema
