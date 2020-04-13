@@ -11,7 +11,7 @@ defmodule Covid19bg do
         init_args
         |> Keyword.get(:updaters, [[]])
         |> Enum.map(fn updater_args ->
-          Supervisor.start_child(Covid19bg.Supervisor, {updater, updater_args})
+          Supervisor.start_child(Covid19bg.Supervisor, updater.child_spec(updater_args))
         end)
 
         :ok

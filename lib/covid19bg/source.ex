@@ -40,7 +40,14 @@ defmodule Covid19bg.Source do
     end
 
     def add_summary([], parent_location) do
-      [%__MODULE__{area: parent_location, place: parent_location, rank: ""}]
+      [
+        %__MODULE__{
+          area: parent_location,
+          place: parent_location,
+          rank: "",
+          updated: DateTime.from_unix!(0)
+        }
+      ]
     end
 
     def add_summary([%__MODULE__{} | _] = data, parent_location) do
@@ -52,14 +59,20 @@ defmodule Covid19bg.Source do
             active: active,
             recovered: recovered,
             total: total,
-            dead: dead
+            total_new: total_new,
+            dead_new: dead_new,
+            dead: dead,
+            updated: updated
           } = location_data
 
           %__MODULE__{
             active: active_summary,
             recovered: recovered_summary,
             total: total_summary,
-            dead: dead_summary
+            total_new: total_new_summary,
+            dead: dead_summary,
+            dead_new: dead_new_summary,
+            updated: updated_summary
           } = summary
 
           %__MODULE__{
@@ -67,7 +80,14 @@ defmodule Covid19bg.Source do
             | active: active + active_summary,
               recovered: recovered + recovered_summary,
               total: total + total_summary,
-              dead: dead + dead_summary
+              total_new: total_new + total_new_summary,
+              dead: dead + dead_summary,
+              dead_new: dead_new + dead_new_summary,
+              updated:
+                if(DateTime.compare(updated, updated_summary) == :gt,
+                  do: updated,
+                  else: updated_summary
+                )
           }
         end
       )

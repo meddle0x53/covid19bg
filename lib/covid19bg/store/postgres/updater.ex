@@ -1,13 +1,20 @@
 defmodule Covid19bg.Store.Postgres.Updater do
   use GenServer
 
-  alias Covid19bg.Source.{Arcgis, LocalBg, SnifyCovidOpendataBulgaria}
+  alias Covid19bg.Source.{Arcgis, Local, SnifyCovidOpendataBulgaria}
 
   require Logger
 
   @default_sources [Arcgis, SnifyCovidOpendataBulgaria]
   @default_update_interval 10 * 60 * 1000
   @default_name __MODULE__
+
+  def child_spec(args) do
+    %{
+      id: Keyword.get(args, :name, @default_name),
+      start: {__MODULE__, :start_link, [args]}
+    }
+  end
 
   @spec start_link(module) :: GenServer.on_start()
   def start_link(settings) do
@@ -26,7 +33,7 @@ defmodule Covid19bg.Store.Postgres.Updater do
     %{
       sources: Keyword.get(settings, :sources, @default_sources),
       update_interval: Keyword.get(settings, :update_interval, @default_update_interval),
-      destination: Keyword.get(settings, :destination, LocalBg),
+      destination: Keyword.get(settings, :destination, Local),
       check_for_updates: Keyword.get(settings, :check_for_updates, true)
     }
   end

@@ -11,6 +11,11 @@ config :covid19bg,
        database: "covid19bg",
        pool_size: 5,
        updaters: [
-         [update_interval: 60000, name: :covid19bg_bg_updater]
+         [update_interval: 600_000, name: :covid19bg_bg_updater],
+         [
+           update_interval: 300_000,
+           name: :covid19bg_world_updater,
+           sources: [Covid19bg.Source.World]
+         ]
        ]
      ]}

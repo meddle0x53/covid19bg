@@ -47,30 +47,39 @@ defmodule Covid19bg.Formatters.Text do
     %Column{title: "Active", key: :active, header_color: :green, color: :blue}
   ]
 
-  def format(source, data_type, use_ansi_colors \\ true) do
+  def format(source, data_type, location, use_ansi_colors \\ true) do
     case data_type do
       :by_places ->
-        do_format(source.retrieve(data_type), source, @by_place_column_settings, use_ansi_colors)
+        do_format(
+          source.retrieve(data_type, location),
+          source,
+          location,
+          @by_place_column_settings,
+          use_ansi_colors
+        )
 
       :historical ->
         do_format(
-          source.retrieve(data_type),
+          source.retrieve(data_type, location),
           source,
+          location,
           @historical_column_settings,
           use_ansi_colors
         )
     end
   end
 
-  defp do_format({:error, :no_recent_data}, source, column_settings, use_ansi_colors) do
-    Logger.warn("No recent data available to be displayed from #{source.description}!")
+  defp do_format({:error, :no_recent_data}, source, location, column_settings, use_ansi_colors) do
+    Logger.warn(
+      "No recent data available to be displayed for location #{location} from #{
+        source.description
+      }!"
+    )
 
-    do_format([], source, column_settings, use_ansi_colors)
+    do_format([], source, location, column_settings, use_ansi_colors)
   end
 
-  defp do_format(data, source, columns, use_ansi_colors) do
-    location = source.location()
-
+  defp do_format(data, source, location, columns, use_ansi_colors) do
     column_settings =
       Enum.map(columns, fn column_data ->
         %{column_data | title: String.replace(column_data.title, "<location>", location)}

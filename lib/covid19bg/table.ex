@@ -161,6 +161,9 @@ defmodule Covid19bg.Table do
             number when is_integer(number) ->
               Number.Delimit.number_to_delimited(number)
 
+            nil ->
+              ""
+
             text ->
               text
           end

@@ -11,34 +11,33 @@ defmodule Covid19bg.Source.SnifyCovidOpendataBulgaria do
               "/snify/covid-opendata-bulgaria/master/data/latest_data.json"
           )
 
-  @cities %{
-    "Veliko Tarnovo" => "Велико Търново",
-    "Kyustendil" => "Кюстендил",
-    "Ruse" => "Русе",
-    "Smolyan" => "Смолян",
-    "Sofia City" => "София",
-    "Plovdiv" => "Пловдив",
-    "Burgas" => "Бургас",
-    "Blagoevgrad" => "Благоевград",
-    "Varna" => "Варна",
-    "Stara Zagora" => "Стара Загора",
-    "Pazardzhik" => "Пазарджик",
-    "Kardzhali" => "Кърджали",
-    "Dobrich" => "Добрич",
-    "Sliven" => "Сливен",
-    "Pleven" => "Плевен",
-    "Haskovo" => "Хасково",
-    "Pernik" => "Перник",
-    "Shumen" => "Шумен",
-    "Montana" => "Монтана",
-    "Vratsa" => "Враца",
-    "Vidin" => "Видин",
-    "Silistra" => "Силистра",
-    "Lovech" => "Ловеч",
-    "Gabrovo" => "Габрово"
+  @unknown_when %{
+    "Blagoevgrad" => 1,
+    "Burgas" => 1,
+    "Varna" => 8,
+    "Veliko Tarnovo" => 0,
+    "Vidin" => 0,
+    "Vratsa" => 0,
+    "Dobrich" => 0,
+    "Gabrovo" => 2,
+    "Kardzhali" => 0,
+    "Kyustendil" => 0,
+    "Lovech" => 0,
+    "Montana" => 15,
+    "Pazardzhik" => 0,
+    "Pernik" => 3,
+    "Pleven" => 1,
+    "Plovdiv" => 3,
+    "Ruse" => 0,
+    "Silistra" => 0,
+    "Sliven" => 0,
+    "Smolyan" => 0,
+    "Sofia" => 61,
+    "Sofia City" => 61,
+    "Stara Zagora" => 0,
+    "Shumen" => 0,
+    "Haskovo" => 0
   }
-
-  # @cities_reverse @cities |> Enum.map(fn {k, v} -> {v, k} end) |> Enum.into(%{})
 
   def retrieve(type \\ :all, place \\ "Bulgaria")
 
@@ -68,7 +67,7 @@ defmodule Covid19bg.Source.SnifyCovidOpendataBulgaria do
   def description, do: "Данните са от Wikipedia coronavirus pandemic medical cases"
 
   def universal_place_name(name) do
-    Map.get(@cities, name, name)
+    Map.get(Helpers.cities_latin_cyrillic(), name, name)
   end
 
   defp transform_historical_response_by_places(%{status_code: 200, body: body}) do
@@ -127,11 +126,12 @@ defmodule Covid19bg.Source.SnifyCovidOpendataBulgaria do
                 Map.update(current, name, total, &(&1 + total))
               end)
             end)
+            |> Enum.reject(fn {place, _} -> place == "Unknown" end)
             |> Enum.map(fn {place, total} ->
               %LocationData{
                 area: location(),
                 place: universal_place_name(place),
-                total: total,
+                total: total + Map.get(@unknown_when, place, 0),
                 total_new: locations_new[place]
               }
             end)
@@ -263,6 +263,59 @@ defmodule Covid19bg.Source.SnifyCovidOpendataBulgaria do
       }
     end)
     |> LocationData.sort_and_rank([:updated])
+    |> Enum.reverse()
+  end
+
+  def extract_historical_data(historical_data, city) do
+    filter = String.capitalize(city)
+    filter = Map.get(Helpers.cities_cyrillic_latin(), filter, filter)
+
+    historical_data
+    |> Enum.map(fn data ->
+      %{"date" => date, "data" => city_data} = data
+
+      city_data
+      |> Enum.find(fn %{"name" => name} -> name == filter || name == "#{filter} City" end)
+      |> case do
+        %{"name" => name, "total_cases" => total_new} ->
+          day = date |> String.split("-") |> Enum.reverse() |> Enum.join("-")
+
+          %LocationData{
+            area: location(),
+            place: universal_place_name(name),
+            total_new: total_new,
+            updated: day
+          }
+
+        _ ->
+          nil
+      end
+    end)
+    |> Enum.reject(&is_nil/1)
+    |> LocationData.sort_and_rank([:updated])
+    |> Kernel.++(
+      case Map.get(@unknown_when, filter, 0) do
+        n when n > 0 ->
+          [
+            %LocationData{
+              area: location(),
+              place: filter,
+              total_new: n,
+              updated: "UNKNOWN"
+            }
+          ]
+
+        _ ->
+          []
+      end
+    )
+    |> Enum.reverse()
+    |> Enum.reduce([], fn location, acc ->
+      prev = List.first(acc) || %LocationData{}
+      total = prev.total + location.total_new
+
+      [%LocationData{location | total: total} | acc]
+    end)
     |> Enum.reverse()
   end
 end

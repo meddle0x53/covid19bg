@@ -1,5 +1,5 @@
-defmodule Covid19bg.Source.LocalBg do
-  alias Covid19bg.Source.{Arcgis, LocationData, SnifyCovidOpendataBulgaria}
+defmodule Covid19bg.Source.Local do
+  alias Covid19bg.Source.{Arcgis, Helpers, LocationData, SnifyCovidOpendataBulgaria}
 
   require Logger
 
@@ -13,17 +13,19 @@ defmodule Covid19bg.Source.LocalBg do
     }
   end
 
-  def retrieve(:by_places, _) do
+  def retrieve(:by_places, place) do
+    place = String.capitalize(place)
+
     retriever = fn store, store_module ->
-      case store_module.get_latest(store, location()) do
+      case store_module.get_latest(store, place) do
         {:ok, result, _} ->
           response = LocationData.sort_and_rank(result)
 
           summary =
-            case retrieve(:latest) do
+            case retrieve(:latest, place) do
               %{summary: summary} ->
                 %LocationData{
-                  LocationData.add_summary(response, location())
+                  LocationData.add_summary(response, place)
                   | recovered_new: summary.recovered_new,
                     dead_new: summary.dead_new,
                     total_new: summary.total_new,
@@ -31,7 +33,7 @@ defmodule Covid19bg.Source.LocalBg do
                 }
 
               {:error, _} ->
-                LocationData.add_summary(response, location())
+                LocationData.add_summary(response, place)
             end
 
           response ++ [summary]
@@ -44,9 +46,9 @@ defmodule Covid19bg.Source.LocalBg do
     with_store(retriever)
   end
 
-  def retrieve(:latest, _) do
+  def retrieve(:latest, place) do
     retriever = fn store, store_module ->
-      case store_module.get_latest_for_location(store, location()) do
+      case store_module.get_latest_for_location(store, place) do
         {:ok, result, _} ->
           %{day: DateTime.to_date(result.updated), summary: result, locations: []}
 
@@ -58,7 +60,14 @@ defmodule Covid19bg.Source.LocalBg do
     with_store(retriever)
   end
 
+  def retrieve(:historical, "sofia") do
+    retrieve(:historical, "София")
+  end
+
   def retrieve(:historical, place) do
+    place = String.capitalize(place)
+    place = Map.get(Helpers.cities_latin_cyrillic(), place, place)
+
     retriever = fn store, store_module ->
       case store_module.get_historical_for_location(store, place) do
         {:ok, result, _} ->
@@ -76,8 +85,12 @@ defmodule Covid19bg.Source.LocalBg do
 
   def location, do: "Bulgaria"
 
-  def link, do: "Cached from https://www.arcgis.com"
-  def description, do: "Данните са от НСИ"
+  def link do
+    "Cached from https://www.arcgis.com , https://www.worldometers.info/coronavirus/ , https://corona.lmao.ninja , https://corona.lmao.ninja, https://github.com/snify/covid-opendata-bulgaria"
+  end
+  def description do
+    "Данните са от Coronavirus Tracker, Worldometers, НСИ "
+  end
 
   def update_latest_from_sources(sources \\ [Arcgis, SnifyCovidOpendataBulgaria]) do
     sources

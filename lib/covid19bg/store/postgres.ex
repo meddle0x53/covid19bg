@@ -7,6 +7,8 @@ defmodule Covid19bg.Store.Postgres do
   @external_resource Path.join([File.cwd!(), "config", "schema.sql"])
   @schema File.read!(@schema_file_path)
 
+  @supported_parent_locations ~w(Bulgaria World)
+
   defstruct connection: nil, schema: "public"
 
   def new() do
@@ -117,12 +119,17 @@ defmodule Covid19bg.Store.Postgres do
   def get_latest(
         %__MODULE__{schema: schema} = store,
         parent_location
-      ) do
+      ) when parent_location in @supported_parent_locations do
     query =
-      "SELECT * FROM #{schema}.latest_stats WHERE location IN (SELECT name FROM #{schema}.locations WHERE parent_location = $1)"
+      "SELECT * FROM #{schema}.latest_stats WHERE location IN (SELECT name FROM #{schema}.locations WHERE parent_location = $1 AND name != 'World')"
 
     args = [parent_location]
     get_location_data(store, parent_location, query, args)
+  end
+
+  def get_latest(%__MODULE__{} = store, location)  do
+    {:ok, result, store} = get_latest_for_location(store, location)
+    {:ok, [result], store}
   end
 
   def get_latest_for_location(%__MODULE__{schema: schema} = store, location) do

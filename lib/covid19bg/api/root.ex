@@ -50,16 +50,15 @@ defmodule Covid19bg.API.Root do
   """
 
   def get(conn, %{"accept" => "application/json"}) do
-    data = get_source(conn).retrieve()
-    cases_by_location = Map.get(data, :casesByLocation)
+    data = get_source(conn).retrieve(:by_places)
 
     cases_by_location_json =
-      cases_by_location
+      data
       |> Enum.map(&Map.from_struct/1)
 
     Helpers.send_success(
       conn,
-      %{data | casesByLocation: cases_by_location_json} |> Jason.encode!()
+      %{casesByLocation: cases_by_location_json} |> Jason.encode!()
     )
   end
 
@@ -70,7 +69,7 @@ defmodule Covid19bg.API.Root do
         conn,
         [
           @html_header,
-          Text.format(get_source(conn), get_data_type(conn), false),
+          Text.format(get_source(conn), get_data_type(conn), get_location(conn), false),
           @html_footer
         ],
         "text/html"
@@ -99,7 +98,7 @@ defmodule Covid19bg.API.Root do
   defp send_plain_text(conn) do
     Helpers.send_success(
       conn,
-      Text.format(get_source(conn), get_data_type(conn)),
+      Text.format(get_source(conn), get_data_type(conn), get_location(conn)),
       "text/plain"
     )
   end
@@ -108,9 +107,10 @@ defmodule Covid19bg.API.Root do
     case Map.get(conn.params, "source", "local") do
       "arcgis" -> Covid19bg.Source.Arcgis
       "nsi" -> Covid19bg.Source.Arcgis
-      "local" -> Covid19bg.Source.LocalBg
+      "local" -> Covid19bg.Source.Local
       "snify" -> Covid19bg.Source.SnifyCovidOpendataBulgaria
-      _ -> Covid19bg.Source.LocalBg
+      "world" -> Covid19bg.Source.World
+      _ -> Covid19bg.Source.Local
     end
   end
 
@@ -122,5 +122,9 @@ defmodule Covid19bg.API.Root do
       "all" -> :all
       _ -> :by_places
     end
+  end
+
+  defp get_location(conn) do
+    Map.get(conn.params, "location", get_source(conn).location())
   end
 end
