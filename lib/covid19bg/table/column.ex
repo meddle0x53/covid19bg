@@ -8,8 +8,11 @@ defmodule Covid19bg.Table.Column do
     color: nil,
     width: 0,
     align: :right,
+    remove_if: &__MODULE__.remove_if/1,
     formatter: &__MODULE__.formatter/2
   ]
 
   def formatter(v, _), do: to_string(v)
+
+  def remove_if(_), do: false
 end

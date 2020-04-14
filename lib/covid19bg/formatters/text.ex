@@ -40,10 +40,34 @@ defmodule Covid19bg.Formatters.Text do
     %Column{title: "New cases", key: :total_new, header_color: :green, color: :yellow},
     %Column{title: "Total Deaths", key: :dead, header_color: :green, color: :red},
     %Column{title: "New Deaths", key: :dead_new, header_color: :green, color: :red},
-    %Column{title: "Total Recovered", key: :recovered, header_color: :green, color: :green},
-    %Column{title: "New Recovered", key: :recovered_new, header_color: :green, color: :green},
-    %Column{title: "Hospitalized", key: :in_hospital, header_color: :green, color: :magenta},
-    %Column{title: "Critical", key: :critical, header_color: :green, color: :red},
+    %Column{
+      title: "Total Recovered",
+      key: :recovered,
+      header_color: :green,
+      color: :green,
+      remove_if: &__MODULE__.remove_broken/1
+    },
+    %Column{
+      title: "New Recovered",
+      key: :recovered_new,
+      header_color: :green,
+      color: :green,
+      remove_if: &__MODULE__.remove_broken/1
+    },
+    %Column{
+      title: "Hospitalized",
+      key: :in_hospital,
+      header_color: :green,
+      color: :magenta,
+      remove_if: &__MODULE__.remove_all_empty/1
+    },
+    %Column{
+      title: "Critical",
+      key: :critical,
+      header_color: :green,
+      color: :red,
+      remove_if: &__MODULE__.remove_all_empty/1
+    },
     %Column{title: "Active", key: :active, header_color: :green, color: :blue}
   ]
 
@@ -143,6 +167,17 @@ defmodule Covid19bg.Formatters.Text do
 
   def formatter(0, %{summary: false}), do: ""
   def formatter(v, _), do: to_string(v)
+
+  def remove_all_empty(values) do
+    Enum.all?(values, fn value -> value == "" || value == 0 || !value end)
+  end
+
+  def remove_broken(values) do
+    Enum.any?(values, fn
+      value when is_number(value) and value < 0 -> true
+      value -> value
+    end)
+  end
 
   defp colorize(color, true), do: Kernel.apply(IO.ANSI, color, [])
   defp colorize(_, false), do: <<>>

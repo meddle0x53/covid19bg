@@ -18,6 +18,9 @@ defmodule Covid19bg.Source.Local do
 
     retriever = fn store, store_module ->
       case store_module.get_latest(store, place) do
+        {:ok, [nil], _} ->
+          []
+
         {:ok, result, _} ->
           response = LocationData.sort_and_rank(result)
 
@@ -88,6 +91,7 @@ defmodule Covid19bg.Source.Local do
   def link do
     "Cached from https://www.arcgis.com , https://www.worldometers.info/coronavirus/ , https://corona.lmao.ninja , https://corona.lmao.ninja, https://github.com/snify/covid-opendata-bulgaria"
   end
+
   def description do
     "Данните са от Coronavirus Tracker, Worldometers, НСИ "
   end

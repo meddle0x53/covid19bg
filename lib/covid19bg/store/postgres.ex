@@ -119,7 +119,8 @@ defmodule Covid19bg.Store.Postgres do
   def get_latest(
         %__MODULE__{schema: schema} = store,
         parent_location
-      ) when parent_location in @supported_parent_locations do
+      )
+      when parent_location in @supported_parent_locations do
     query =
       "SELECT * FROM #{schema}.latest_stats WHERE location IN (SELECT name FROM #{schema}.locations WHERE parent_location = $1 AND name != 'World')"
 
@@ -127,7 +128,7 @@ defmodule Covid19bg.Store.Postgres do
     get_location_data(store, parent_location, query, args)
   end
 
-  def get_latest(%__MODULE__{} = store, location)  do
+  def get_latest(%__MODULE__{} = store, location) do
     {:ok, result, store} = get_latest_for_location(store, location)
     {:ok, [result], store}
   end
@@ -140,6 +141,9 @@ defmodule Covid19bg.Store.Postgres do
     store
     |> get_location_data(location, query, args)
     |> case do
+      {:ok, [], store} ->
+        {:ok, nil, store}
+
       {:ok, [result], store} ->
         {:ok, result, store}
 

@@ -29,6 +29,14 @@ defmodule Covid19bg.Table do
   def default_table_settings, do: @table_settings
 
   def iodata(row_data, column_settings, table_settings \\ @table_settings) do
+    column_settings =
+      column_settings
+      |> Enum.reject(fn %{key: key, remove_if: remove_if} ->
+        row_data
+        |> Enum.map(fn row_data -> Map.get(row_data, key) end)
+        |> remove_if.()
+      end)
+
     header_data =
       column_settings
       |> Enum.map(fn %{title: title, key: key} -> {key, title} end)
