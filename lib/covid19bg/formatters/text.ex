@@ -1,6 +1,8 @@
 defmodule Covid19bg.Formatters.Text do
+  alias Covid19bg.API.Params
   alias Covid19bg.Table
   alias Covid19bg.Table.Column
+  alias Covid19bg.Source.LocationData
 
   require Logger
 
@@ -71,22 +73,47 @@ defmodule Covid19bg.Formatters.Text do
     %Column{title: "Active", key: :active, header_color: :green, color: :blue}
   ]
 
-  def format(source, data_type, location, use_ansi_colors \\ true) do
-    case data_type do
+  def format(%Params{} = params, use_ansi_colors \\ true) do
+    raw_data = params.source.retrieve(params.data_type, params.location)
+
+    data =
+      raw_data
+      |> case do
+        {:error, message} ->
+          Logger.warn(message)
+          []
+
+        list when is_list(list) ->
+          list
+      end
+      |> LocationData.sort_and_rank(params.order_keys)
+      |> (fn list ->
+            if params.order_direction == :asc do
+              Enum.reverse(list)
+            else
+              list
+            end
+          end).()
+      |> Enum.reject(fn %{summary: summary} -> summary end)
+      |> Enum.drop(params.offset)
+      |> Enum.take(params.limit)
+      |> Kernel.++(Enum.filter(raw_data, fn %{summary: summary} -> summary end))
+
+    case params.data_type do
       :by_places ->
         do_format(
-          source.retrieve(data_type, location),
-          source,
-          location,
+          data,
+          params.source,
+          params.location,
           @by_place_column_settings,
           use_ansi_colors
         )
 
       :historical ->
         do_format(
-          source.retrieve(data_type, location),
-          source,
-          location,
+          data,
+          params.source,
+          params.location,
           @historical_column_settings,
           use_ansi_colors
         )

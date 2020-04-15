@@ -1,6 +1,7 @@
 defmodule Covid19bg.API.Root do
-  alias Covid19bg.API.Helpers
+  alias Covid19bg.API.{Helpers, Params}
   alias Covid19bg.Formatters.Text
+  alias Covid19bg.Source.LocationData
 
   @html_header """
     <!doctype html>
@@ -50,26 +51,39 @@ defmodule Covid19bg.API.Root do
   """
 
   def get(conn, %{"accept" => "application/json"}) do
-    data = get_source(conn).retrieve(:by_places)
+    params = build_params(conn)
+    data = params.source.retrieve(params.data_type, params.location)
 
-    cases_by_location_json =
+    cases =
       data
+      |> LocationData.sort_and_rank(params.order_keys)
+      |> (fn list ->
+            if params.order_direction == :ask do
+              Enum.reverse(list)
+            else
+              list
+            end
+          end).()
       |> Enum.map(&Map.from_struct/1)
+      |> Enum.drop(params.offset)
+      |> Enum.take(params.limit)
 
     Helpers.send_success(
       conn,
-      %{casesByLocation: cases_by_location_json} |> Jason.encode!()
+      cases |> Jason.encode!()
     )
   end
 
   def get(conn, %{"accept" => accept}) do
     with true <- String.contains?(accept, "text/html"),
          "true" <- Map.get(conn.params, "plain", "false") do
+      params = build_params(conn)
+
       Helpers.send_success(
         conn,
         [
           @html_header,
-          Text.format(get_source(conn), get_data_type(conn), get_location(conn), false),
+          Text.format(params, false),
           @html_footer
         ],
         "text/html"
@@ -96,35 +110,28 @@ defmodule Covid19bg.API.Root do
   end
 
   defp send_plain_text(conn) do
+    params = build_params(conn)
+
     Helpers.send_success(
       conn,
-      Text.format(get_source(conn), get_data_type(conn), get_location(conn)),
+      Text.format(
+        params,
+        if Map.get(conn.params, "plain", "false") == "true" do
+          false
+        else
+          true
+        end
+      ),
       "text/plain"
     )
   end
 
-  defp get_source(conn) do
-    case Map.get(conn.params, "source", "local") do
-      "arcgis" -> Covid19bg.Source.Arcgis
-      "nsi" -> Covid19bg.Source.Arcgis
-      "local" -> Covid19bg.Source.Local
-      "snify" -> Covid19bg.Source.SnifyCovidOpendataBulgaria
-      "world" -> Covid19bg.Source.World
-      _ -> Covid19bg.Source.Local
-    end
-  end
-
-  defp get_data_type(conn) do
-    case Map.get(conn.params, "data", "by_places") do
-      "historical" -> :historical
-      "by_places" -> :by_places
-      "latest" -> :latest
-      "all" -> :all
-      _ -> :by_places
-    end
-  end
-
-  defp get_location(conn) do
-    Map.get(conn.params, "location", get_source(conn).location())
+  defp build_params(conn) do
+    Params.new(conn)
+    |> Params.data_type(conn)
+    |> Params.offset(conn)
+    |> Params.limit(conn)
+    |> Params.order(conn)
+    |> Params.order_direction(conn)
   end
 end

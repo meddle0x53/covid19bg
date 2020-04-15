@@ -1,56 +1,52 @@
 <!doctype html>
 <html>
-  <head>
-    <title>Coronavirus Tracker</title>
-    <meta charset="UTF-8">
-    <link rel="stylesheet" type="text/css" href="dataGrid.css" />
-    <script src="js-utils.min.js"></script>
-    <script type="module">
-      import {DataGrid} from "./DataGrid.js";
+    <head>
+    	<title>DataGrid Test</title>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<link rel="stylesheet" type="text/css" href="dataGrid.css" />
+    	<script src="js-utils.min.js"></script>
+        <script type="module">
 
-      function onClickEvent(key, value, data){
-        console.log("onClickEvent", key, value, data);
-      }
+			import {DataGrid} from "./DataGrid.js";
+			
+        	docReady((event) => {
 
-      docReady((event) => {
+            	const columns = [
+					{label: "Bulgaria", key: "place", sorting: true},
+            		{label: "Total", key: "total", sorting: true}, 
+					{label: "Total Deaths", key: "dead", sorting: true}, 
+					{label: "Recovered", key: "recovered", sorting: true}, 
+					// {label: "Critical", key: "critical", sorting: true},
+					// {label: "In hospital", key: "in_hospital", sorting: true},
+					{label: "Total new", key: "total_new", sorting: true},
+					{label: "Dead new", key: "dead_new", sorting: true},
+					{label: "Recovered new", key: "recovered_new", sorting: true},
+					// {label: "Updated time", key: "updated", sorting: true}
+				],
+            	dg = new DataGrid(columns);
+				getElement(".container").append(dg.container);
 
-        const columns = [
-            {label: "Bulgaria", key: "place", sorting: true, onClick: true},
-            {label: "Total", key: "total", sorting: true}, 
-            {label: "Total Deaths", key: "dead", sorting: true}, 
-            {label: "Recovered", key: "recovered", sorting: true}, 
-            {label: "Аctive", key: "active", sorting: true}
-          ],
-          dg = new DataGrid(columns, {onClickEvent});
-
-        getElement(".container").append(dg.container);
-
-        // const covid19Data = '{"casesByLocation":[{"active":2,"area":"Благоевград","dead":1,"place":"Банско","recovered":0,"total":3},{"active":10,"area":"Благоевград","dead":2,"place":"Благоевград","recovered":2,"total":14},{"active":1,"area":"Благоевград","dead":0,"place":"Разлог","recovered":0,"total":1},{"active":1,"area":"Бургас","dead":0,"place":"Карнобат","recovered":0,"total":1},{"active":20,"area":"Бургас","dead":0,"place":"Бургас","recovered":4,"total":24},{"active":19,"area":"Варна","dead":0,"place":"Варна","recovered":5,"total":24},{"active":4,"area":"Велико Търново","dead":0,"place":"Велико Търново","recovered":0,"total":4},{"active":2,"area":"Видин","dead":0,"place":"Видин","recovered":0,"total":2},{"active":2,"area":"Враца","dead":0,"place":"Враца","recovered":0,"total":2},{"active":0,"area":"Габрово","dead":0,"place":"Габрово","recovered":2,"total":2},{"active":12,"area":"Добрич","dead":0,"place":"Добрич","recovered":0,"total":12},{"active":10,"area":"Кърджали","dead":0,"place":"Кърджали","recovered":0,"total":10},{"active":1,"area":"Кюстендил","dead":0,"place":"Дупница","recovered":0,"total":1},{"active":7,"area":"Кюстендил","dead":3,"place":"Кюстендил","recovered":0,"total":10},{"active":0,"area":"Ловеч","dead":0,"place":"Ловеч","recovered":1,"total":1},{"active":1,"area":"Ловеч","dead":0,"place":"Троян","recovered":0,"total":1},{"active":5,"area":"Монтана","dead":0,"place":"Василовци, Брусарци, Монтана","recovered":0,"total":5},{"active":2,"area":"Монтана","dead":0,"place":"Монтана","recovered":0,"total":2},{"active":11,"area":"Монтана","dead":0,"place":"Лом","recovered":0,"total":11},{"active":3,"area":"Пазарджик","dead":0,"place":"Пазарджик","recovered":2,"total":5},{"active":1,"area":"Пазарджик","dead":0,"place":"Панагюрище","recovered":0,"total":1},{"active":4,"area":"Пазарджик","dead":1,"place":"Пещера","recovered":2,"total":7},{"active":7,"area":"Перник","dead":0,"place":"Перник","recovered":1,"total":8},{"active":6,"area":"Плевен","dead":0,"place":"Плевен","recovered":3,"total":9},{"active":31,"area":"Пловдив","dead":0,"place":"Пловдив","recovered":1,"total":32},{"active":1,"area":"Пловдив","dead":0,"place":"Карлово","recovered":0,"total":1},{"active":3,"area":"Русе","dead":0,"place":"Русе","recovered":0,"total":3},{"active":2,"area":"Силистра","dead":0,"place":"Силистра","recovered":0,"total":2},{"active":11,"area":"Сливен","dead":0,"place":"Сливен","recovered":0,"total":11},{"active":16,"area":"Смолян","dead":0,"place":"Смолян","recovered":0,"total":16},{"active":328,"area":"София-град","dead":15,"place":"София","recovered":20,"total":363},{"active":5,"area":"София","dead":0,"place":"Костинброд","recovered":0,"total":5},{"active":14,"area":"Стара Загора","dead":1,"place":"Стара Загора","recovered":0,"total":15},{"active":5,"area":"Хасково","dead":0,"place":"Хасково","recovered":1,"total":6},{"active":2,"area":"Шумен","dead":1,"place":"Шумен","recovered":1,"total":4}]}';
-        // dg.addData(JSON.parse(covid19Data).casesByLocation);
-        // dg.sortOn("total", true);
-
-        _$.ajax({
-          type: "GET",
-          dataType: "json",
+				_$.ajax({
+					type: "GET",
+					dataType: "json",
           headers: {
             accept: "application/json"
           },
-          data: {},
-          url: "/",
-          success: (data) => {
-            console.log(data);
-            dg.addData(data.casesByLocation);
-            dg.sortOn("total", true);
-          },
-          error: (err) => {
-            console.warn(err);
-          }
-        });
-
-      });
-    </script>
-  </head>
-  <body>
-    <div class="container"></div>
-  </body>
+					data: getURLParameters(),
+					url: "/" + window.location.search,
+					success: (data) => {
+						console.log(data);
+						dg.addData(data);
+						dg.sortOn("total", true);
+					}, 
+					error: (err) => {console.warn(err);}
+				});
+				
+            });
+		</script>
+    </head>
+    <body>
+    	<div class="container"></div>
+    </body>
 </html>

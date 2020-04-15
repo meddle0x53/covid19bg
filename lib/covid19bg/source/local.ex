@@ -32,7 +32,8 @@ defmodule Covid19bg.Source.Local do
                   | recovered_new: summary.recovered_new,
                     dead_new: summary.dead_new,
                     total_new: summary.total_new,
-                    updated: summary.updated
+                    updated: summary.updated,
+                    summary: true
                 }
 
               {:error, _} ->

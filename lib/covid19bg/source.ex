@@ -18,10 +18,13 @@ defmodule Covid19bg.Source do
 
     def sort_and_rank(list, fields \\ [:total, :active])
 
+    def sort_and_rank(list, []), do: list
+
     def sort_and_rank([], _), do: []
 
     def sort_and_rank([%__MODULE__{} | _] = data, fields) do
       data
+      |> Enum.reject(fn %{summary: summary} -> summary end)
       |> Enum.sort(fn data1, data2 ->
         fields
         |> Enum.drop_while(fn field ->
@@ -37,6 +40,7 @@ defmodule Covid19bg.Source do
       |> Enum.map(fn {data_chunk, index} ->
         Map.put(data_chunk, :rank, index + 1)
       end)
+      |> Kernel.++(Enum.filter(data, fn %{summary: summary} -> summary end))
     end
 
     def add_summary([], parent_location) do
@@ -45,7 +49,8 @@ defmodule Covid19bg.Source do
           area: parent_location,
           place: parent_location,
           rank: "",
-          updated: DateTime.from_unix!(0)
+          updated: DateTime.from_unix!(0),
+          summary: true
         }
       ]
     end
