@@ -80,18 +80,11 @@ RETURNS void
 AS
 $body$
 BEGIN
-  UPDATE public.latest_stats ls
+  UPDATE public.latest_stats
   SET
-    total = a_total,
-    total_new = CASE WHEN a_total_new > ls.total_new THEN a_total_new ELSE ls.total_new END,
-    dead = a_dead,
-    dead_new = CASE WHEN a_dead_new > ls.dead_new THEN a_dead_new ELSE ls.dead_new END,
-    recovered = a_recovered,
-    recovered_new = CASE WHEN a_recovered_new > ls.recovered_new THEN a_recovered_new ELSE ls.recovered_new END,
-    active = a_active,
-    in_hospital = CASE WHEN a_in_hospital > ls.in_hospital THEN a_in_hospital ELSE ls.in_hospital END,
-    critical = CASE WHEN a_critical > ls.critical THEN a_critical ELSE ls.critical END,
-    updated = a_updated
+    total = a_total, total_new = a_total_new, dead = a_dead, dead_new = a_dead_new,
+    recovered = a_recovered, recovered_new = a_recovered_new, active = a_active,
+    in_hospital = a_in_hospital, critical = a_critical, updated = a_updated
   WHERE location = a_location;
   IF NOT FOUND THEN
     PERFORM public_insert_latest_stats(
@@ -123,13 +116,7 @@ $body$
   )
   ON CONFLICT (location, day)
   DO UPDATE SET
-    total = a_total,
-    total_new = CASE WHEN a_total_new > public.historical_stats.total_new THEN a_total_new ELSE public.historical_stats.total_new END,
-    dead = a_dead,
-    dead_new = CASE WHEN a_dead_new > public.historical_stats.dead_new THEN a_dead_new ELSE public.historical_stats.dead_new END,
-    recovered = a_recovered,
-    recovered_new = CASE WHEN a_recovered_new > public.historical_stats.recovered_new THEN a_recovered_new ELSE public.historical_stats.recovered_new END,
-    active = a_active,
-    in_hospital = CASE WHEN a_in_hospital > public.historical_stats.in_hospital THEN a_in_hospital ELSE public.historical_stats.in_hospital END,
-    critical = CASE WHEN a_critical > public.historical_stats.critical THEN a_critical ELSE public.historical_stats.critical END;
+    total = a_total, total_new = a_total_new, dead = a_dead, dead_new = a_dead_new,
+    recovered = a_recovered, recovered_new = a_recovered_new, active = a_active,
+    in_hospital = a_in_hospital, critical = a_critical;
 $body$ language SQL;

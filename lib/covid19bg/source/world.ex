@@ -1,7 +1,7 @@
 defmodule Covid19bg.Source.World do
   alias Covid19bg.Source.{Helpers, LocationData}
 
-  @by_places_uri URI.parse("https://corona.lmao.ninja/countries?sort=cases")
+  @by_places_uri URI.parse("https://corona.lmao.ninja/v2/countries?sort=cases")
 
   @historical URI.parse("https://coronavirus-tracker-api.herokuapp.com/all")
 

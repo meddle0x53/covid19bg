@@ -31,17 +31,30 @@ defmodule Covid19bg.Formatters.Text do
       key: :recovered_new,
       header_color: :red,
       color: :green,
-      formatter: &__MODULE__.formatter/2
+      formatter: &__MODULE__.formatter/2,
+      remove_if: &__MODULE__.remove_if_few/1
     },
-    %Column{title: "Active", key: :active, header_color: :red, color: :blue}
+    %Column{title: "Active", key: :active, header_color: :red, color: :magenta}
   ]
 
   @historical_column_settings [
     %Column{title: "Date", key: :updated, header_color: :green, align: :left},
     %Column{title: "Total cases", key: :total, header_color: :green, color: :yellow},
     %Column{title: "New cases", key: :total_new, header_color: :green, color: :yellow},
-    %Column{title: "Total Deaths", key: :dead, header_color: :green, color: :red},
-    %Column{title: "New Deaths", key: :dead_new, header_color: :green, color: :red},
+    %Column{
+      title: "Total Deaths",
+      key: :dead,
+      header_color: :green,
+      color: :red,
+      remove_if: &__MODULE__.remove_all_empty/1
+    },
+    %Column{
+      title: "New Deaths",
+      key: :dead_new,
+      header_color: :green,
+      color: :red,
+      remove_if: &__MODULE__.remove_all_empty/1
+    },
     %Column{
       title: "Total Recovered",
       key: :recovered,
@@ -61,31 +74,40 @@ defmodule Covid19bg.Formatters.Text do
       key: :in_hospital,
       header_color: :green,
       color: :magenta,
-      remove_if: &__MODULE__.remove_all_empty/1
+      remove_if: &__MODULE__.remove_if_few/1
     },
     %Column{
       title: "Critical",
       key: :critical,
       header_color: :green,
       color: :red,
-      remove_if: &__MODULE__.remove_all_empty/1
+      remove_if: &__MODULE__.remove_if_few/1
     },
-    %Column{title: "Active", key: :active, header_color: :green, color: :blue}
+    %Column{
+      title: "Active",
+      key: :active,
+      header_color: :green,
+      color: :magenta,
+      remove_if: &__MODULE__.remove_all_empty/1
+    }
   ]
 
   def format(%Params{} = params, use_ansi_colors \\ true) do
     raw_data = params.source.retrieve(params.data_type, params.location)
 
-    data =
+    data_as_list =
       raw_data
       |> case do
         {:error, message} ->
-          Logger.warn(message)
+          Logger.warn(inspect(message))
           []
 
         list when is_list(list) ->
           list
       end
+
+    data =
+      data_as_list
       |> LocationData.sort_and_rank(params.order_keys)
       |> (fn list ->
             if params.order_direction == :asc do
@@ -97,7 +119,7 @@ defmodule Covid19bg.Formatters.Text do
       |> Enum.reject(fn %{summary: summary} -> summary end)
       |> Enum.drop(params.offset)
       |> Enum.take(params.limit)
-      |> Kernel.++(Enum.filter(raw_data, fn %{summary: summary} -> summary end))
+      |> Kernel.++(Enum.filter(data_as_list, fn %{summary: summary} -> summary end))
 
     case params.data_type do
       :by_places ->
@@ -204,6 +226,18 @@ defmodule Covid19bg.Formatters.Text do
       value when is_number(value) and value < 0 -> true
       value -> value
     end)
+  end
+
+  def remove_if_few(values) do
+    half = Enum.count(values) / 2
+
+    values
+    |> Enum.filter(fn
+      value when is_nil(value) or value == <<>> or value == 0 -> true
+      _ -> false
+    end)
+    |> Enum.count()
+    |> Kernel.>=(half)
   end
 
   defp colorize(color, true), do: Kernel.apply(IO.ANSI, color, [])
